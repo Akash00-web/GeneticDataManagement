@@ -1,0 +1,173 @@
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+
+import java.util.Random;
+import java.util.Scanner;
+
+public class User {
+    public static String role;
+    public static int id;
+    public static String username;
+    public static int userid;
+
+    /**
+     * Displays role selection and handles login for Doctor/Admin/Student.
+     * Returns true if the user wants to exit the app.
+     */
+    public boolean selectRole(Scanner sc)  {
+        System.out.println("""
+
+
+                ══════════════════════════════════════════════════════════════
+                                                                              
+                     🧬   GENETIC DATA MANAGEMENT SYSTEM  🧬   
+                                                                             
+                ══════════════════════════════════════════════════════════════
+
+                  🌍 Secure   |       📊 Organized     |         ⚡ Fast 
+
+                ────────────────────────────────────────────────────────────────
+                Please select your role to continue (press only numbers):
+                
+                    1️⃣  Admin      – Manage Users & System
+                    2️⃣  Doctor     – Access & Update Genetic Profiles
+                    3️⃣  Student    – Explore DNA Tools & Learning
+                    4️⃣  Exit       
+                ────────────────────────────────────────────────────────────────
+
+                """);
+
+        System.out.print("Enter your choice: ");
+
+        if (!sc.hasNextInt()) {
+            System.out.println("❌ Invalid input. Please enter a number.");
+            sc.next();
+            role = "unknown";
+            return false;
+        }
+
+        int choice = sc.nextInt();
+        sc.nextLine(); // clear buffer
+
+        switch (choice) {
+            case 1:
+                role = "Admin";
+                break;
+            case 2:
+                role = "Doctor";
+                break;
+            case 3:
+                role = "Student";
+                break;
+            case 4:
+                return true; // exit app
+            default: {
+                role = "unknown";
+                System.out.println("❌ Invalid choice. Please try again.");
+                return false;
+            }
+        }
+
+        // Step 1: Login
+        if (!loginUserFromDB(sc)) {
+            System.out.println("🔄 Returning to main menu...\n");
+            role = "unknown"; // mark as invalid
+            return false;
+        }
+
+        // Step 2: OTP verification
+        if (!verifyOTP(sc)) {
+            System.out.println("🔄 Returning to main menu...\n");
+            role = "unknown"; // mark as invalid
+            return false;
+        }
+
+        return false; // continue to the main app
+    }
+
+    /**
+     * Asks for username and password, validates from DB.
+     */// in User.java
+    public boolean loginUserFromDB(Scanner sc)  {
+        System.out.print("👤 Enter username: ");
+        String inputUsername = sc.nextLine();
+        System.out.print("🔑 Enter password: ");
+        String inputPassword = sc.nextLine();
+        String sql = "SELECT id FROM users WHERE username = ? AND password = ? AND role = ?";
+
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setString(1, inputUsername);
+            stmt.setString(2, inputPassword);
+            stmt.setString(3, role);
+
+
+            try (ResultSet rs = stmt.executeQuery()) {
+                if (rs.next()) {
+                    id = rs.getInt("id");
+                    username = inputUsername;
+                    userid = id;
+                    return true;
+                } else {
+                    System.out.println("❌ Invalid username, password, or role.");
+                    return false;
+                }
+            }
+        } catch (Exception e) {
+            System.err.println("❌ Database error during login: " + e.getMessage());
+            return false;
+        }
+    }
+
+
+    /**
+     * Verifies the OTP.
+     */
+    public boolean verifyOTP(Scanner sc) {
+        Random random = new Random();
+        int otp = 1000 + random.nextInt(9000);
+
+        System.out.println("\n📩 Your One-Time Password (OTP) is: " + otp);
+
+        int attempts = 3;
+        while (attempts > 0) {
+            System.out.print("🔐 Enter OTP: ");
+
+            if (!sc.hasNextInt()) {
+                System.out.println("❌ Invalid input. Please enter numbers only.");
+                sc.next();
+                attempts--;
+                System.out.println("   Attempts left: " + attempts);
+                continue;
+            }
+
+            int enteredOtp = sc.nextInt();
+            if (enteredOtp == otp) {
+                System.out.println("✅ OTP verified successfully.");
+                System.out.println("✅ Logged in as " + role + " (" + username + ")\n " + "  Your  "+ role +" ID: "+ userid );
+
+                //Enter log action by role
+
+                if (role.equalsIgnoreCase("admin")) {
+                    DBConnection.  logAction(userid, username, "Admin : "+username+ " logged in  into system");
+
+                } else if (role.equalsIgnoreCase("doctor")) {
+                    DBConnection.  logAction(userid, username, "Doctor "+username+" logged in into system");
+
+                } else if (role.equalsIgnoreCase("student")) {
+                    DBConnection.  logAction(userid, username, "Student : " +username+" logged in  into system");
+
+                }
+                return true;
+            }
+            else
+            {
+                attempts--;
+                System.out.println("❌ Incorrect OTP. Attempts left: " + attempts);
+            }
+        }
+        System.out.println("⛔ Too many wrong attempts.");
+        return false;
+    }
+}
