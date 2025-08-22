@@ -16,6 +16,7 @@ public class DBConnection {
     // Flag to track if tables have been initialized in this session
     private static boolean tablescreated = false;
 
+
     public static Connection getConnection() throws Exception {
 
         try {
@@ -28,6 +29,25 @@ public class DBConnection {
         }
         return DriverManager.getConnection(URL, USER, PASSWORD);
     }
+
+       //  method to check if username exists
+        public static boolean isUsernameTaken( String username) throws SQLException {
+            String query = "SELECT COUNT(*) FROM users WHERE username = ?";
+           try( Connection conn = getConnection();
+                   PreparedStatement pst = conn.prepareStatement(query))
+           {    pst.setString(1, username);
+               ResultSet rs = pst.executeQuery();
+
+            if (rs.next()) {
+                return rs.getInt(1) > 0; // true if count > 0
+            }
+            return false;
+           } catch (Exception e) {
+               e.printStackTrace();
+               throw new RuntimeException(e);
+           }
+
+        }
 
     // satck to store deleted profiles
     static Stack<Profile> deletedProfiles = new Stack<>();

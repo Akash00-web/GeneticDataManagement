@@ -1,5 +1,8 @@
 import java.io.File;
 import java.io.FileInputStream;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.Arrays;
 import java.util.List;
@@ -7,18 +10,45 @@ import java.util.Scanner;
 import java.util.SequencedCollection;
 
 
+
+
 public class RoleHandler {
+
+//  methos to validate password
+    public static boolean isValidPassword(String password) {
+        boolean hasUppercase = false;
+        boolean hasLowercase = false;
+        boolean hasDigit = false;
+        boolean hasSpecial = false;
+
+        for (char ch : password.toCharArray()) {
+            if (Character.isUpperCase(ch)) {
+                hasUppercase = true;
+            } else if (Character.isLowerCase(ch)) {
+                hasLowercase = true;
+            } else if (Character.isDigit(ch)) {
+                hasDigit = true;
+            } else if ("@#$%&*!".contains(String.valueOf(ch))) {
+                hasSpecial = true;
+            }
+        }
+
+        return hasUppercase && hasLowercase && hasDigit && hasSpecial;
+    }
+
+
+
     // ---- Menu Display Methods ---- //
     public static void AdminActions() {
         System.out.println("""
             --- 🔐 Admin Panel ---
         
-                1. View All Users
+                1. View All System Users
                 2. Add New User
                 3. Delete User
-                4. View Profiles (By ID, Name, or Doctor ID)
+                4. View Profiles of patients (By ID, Name, or Doctor ID)
                 5. View Access Logs
-                6. View Deleted Profiles
+                6. View Deleted Profiles of patients
                 7. Export Data of users (CSV File)
                 8. Logout (Return to Main Menu)
         """);
@@ -94,16 +124,42 @@ public class RoleHandler {
 
                         case 2:
                             // System.out.println("Action: Add new user\n");
-                            System.out.println("enter new user name: ");
-                            String name = sc.next();
-                            System.out.println("enter new user password: ");
-                            String password = sc.next();
+                            String NEWusername;
+                            while (true) {
+                                System.out.print("Enter username: ");
+                                NEWusername = sc.next();
+
+                                if (DBConnection.isUsernameTaken( NEWusername)) {
+                                    System.out.println("❌ Username already available. Please enter a unique username.\n");
+                                } else {
+                                    System.out.println("✅ Username is valid.");
+                                    break;
+                                }
+                            }
+
+                            String password;
+                            while (true) {
+                                System.out.print("Enter Strong  password: ");
+                                password = sc.next();
+
+                                if (isValidPassword(password)) {
+                                    System.out.println("✅ Password accepted!");
+                                    break;
+                                } else {
+                                    System.out.println("❌ Password must contain: ");
+                                    System.out.println("   → At least one uppercase letter");
+                                    System.out.println("   → At least one digit");
+                                    System.out.println("   → At least one special character (@, #, $, %, etc.)");
+                                    System.out.println("   → At least one lowercase letter");
+                                    System.out.println("Please re-enter your password.\n");
+                                }
+                            }
 
                             System.out.println("enter new user role  ( DOCTOR / STUDENT ): ");
                             String role = sc.next().toLowerCase();
 
                             try{
-                                DBConnection.insertUser(name, password, role);
+                                DBConnection.insertUser(NEWusername, password, role);
                             }
                             catch(Exception e){
                                 System.out.println("❌  failed to insert user");

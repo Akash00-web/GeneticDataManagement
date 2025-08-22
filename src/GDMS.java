@@ -8,6 +8,7 @@ public class GDMS {
         // Initialize database tables
         DBConnection.initializeTables();
 
+
         while (true) {
             User user = new User();
 
@@ -26,7 +27,6 @@ public class GDMS {
             // Step 3: Otherwise, loop back to menu automatically
 
         }
-
         sc.close();
     }
 }

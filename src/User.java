@@ -1,11 +1,10 @@
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
-
 import java.util.Random;
 import java.util.Scanner;
 
-public class User {
+public  class User {
     public static String role;
     public static int id;
     public static String username;
