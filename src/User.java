@@ -4,12 +4,18 @@ import java.sql.ResultSet;
 import java.util.Random;
 import java.util.Scanner;
 
-public  class User {
+public  class User extends GDMS{
     public static String role;
     public static int id;
     public static String username;
     public static int userid;
 
+
+    public static final String RESET = "\u001B[0m";
+    public static final String RED = "\u001B[31m";
+   public static final String GREEN = "\u001B[32m";
+    public static final String YELLOW = "\u001B[33m";
+    public static final String BLUE = "\u001B[34m";
     /**
      * Displays role selection and handles login for Doctor/Admin/Student.
      * Returns true if the user wants to exit the app.
@@ -40,7 +46,7 @@ public  class User {
         System.out.print("Enter your choice: ");
 
         if (!sc.hasNextInt()) {
-            System.out.println("❌ Invalid input. Please enter a number.");
+            System.out.println(RED+"❌ Invalid input. Please enter a number."+RESET);// in  RED color
             sc.next();
             role = "unknown";
             return false;
@@ -63,7 +69,7 @@ public  class User {
                 return true; // exit app
             default: {
                 role = "unknown";
-                System.out.println("❌ Invalid choice. Please try again.");
+                System.out.println(RED+"❌ Invalid choice. Please try again."+RESET);
                 return false;
             }
         }
@@ -109,7 +115,7 @@ public  class User {
                     userid = id;
                     return true;
                 } else {
-                    System.out.println("❌ Invalid username, password, or role.");
+                    System.out.println(RED+"❌ Invalid username, password, or role."+RESET);
                     return false;
                 }
             }
@@ -127,14 +133,14 @@ public  class User {
         Random random = new Random();
         int otp = 1000 + random.nextInt(9000);
 
-        System.out.println("\n📩 Your One-Time Password (OTP) is: " + otp);
+        System.out.println("\n📩 Your One-Time Password (OTP) is: "+User.GREEN + otp+User.RESET);
 
         int attempts = 3;
         while (attempts > 0) {
             System.out.print("🔐 Enter OTP: ");
 
             if (!sc.hasNextInt()) {
-                System.out.println("❌ Invalid input. Please enter numbers only.");
+                System.out.println(RED+"❌ Invalid input. Please enter numbers only."+RESET);
                 sc.next();
                 attempts--;
                 System.out.println("   Attempts left: " + attempts);
@@ -143,8 +149,9 @@ public  class User {
 
             int enteredOtp = sc.nextInt();
             if (enteredOtp == otp) {
-                System.out.println("✅ OTP verified successfully.");
-                System.out.println("✅ Logged in as " + role + " (" + username + ")\n " + "  Your  "+ role +" ID: "+ userid );
+                System.out.println(GREEN+" ✅ OTP verified successfully."+RESET);
+                System.out.println();
+                System.out.println("✅ Logged in as " + role + " (" + username + ")\n " + "  Your  "+ role +" ID : "+BLUE +userid +RESET);
 
                 //Enter log action by role
 
@@ -163,10 +170,10 @@ public  class User {
             else
             {
                 attempts--;
-                System.out.println("❌ Incorrect OTP. Attempts left: " + attempts);
+                System.out.println(RED+"❌ Incorrect OTP. Attempts left: " + attempts+RESET);
             }
         }
-        System.out.println("⛔ Too many wrong attempts.");
+        System.out.println(User.RED+"⛔ Too many wrong attempts."+RESET);
         return false;
     }
 }

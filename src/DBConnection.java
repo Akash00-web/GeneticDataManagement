@@ -59,7 +59,6 @@ public class DBConnection {
             createUsersTable();
             createAccessLogsTable();
             createPatientGeneticProfileTable();
-            createTreatmentTable();
             createClinicalNotesTable();
             tablescreated = true; // Set the flag to true after initialization
             System.out.println("Database table initialization complete.\n");
@@ -116,6 +115,7 @@ public class DBConnection {
                 + "dnaSequence TEXT,"
                 + "diseaseMarkers TEXT,"
                 + "doctorID INT,"
+                +"DoctorName VARCHAR(100) NOT NULL,"
                 +"Photo Blob"
                 + ")";
         try (Connection conn = getConnection();
@@ -126,29 +126,6 @@ public class DBConnection {
             }
         } catch (Exception e) {
             System.err.println("❌ Error creating 'patientGeneticProfile' table: " + e.getMessage());
-            e.printStackTrace();
-        }
-    }
-
-    //  Method to create the treatment table
-    public static void createTreatmentTable() {
-        String createTableSQL = "CREATE TABLE IF NOT EXISTS treatment ("
-                + "treatmentID INT AUTO_INCREMENT PRIMARY KEY," // Added a primary key for the treatment table itself
-                + "profileID INT NOT NULL," // References patientGeneticProfile
-                + "recommendationText TEXT NOT NULL,"
-                + "treatmentDate TIMESTAMP DEFAULT CURRENT_TIMESTAMP," // Renamed 'date' to 'treatmentDate' to avoid keyword conflict
-                + "doctorID INT NOT NULL," // References user table
-                + "FOREIGN KEY (profileID) REFERENCES patientGeneticProfile(profileID),"
-                + "FOREIGN KEY (doctorID) REFERENCES users(id)"
-                + ")";
-        try (Connection conn = getConnection();
-             Statement stmt = conn.createStatement()) {
-            stmt.execute(createTableSQL);
-            if (!tablescreated) {
-                System.out.println("✅ 'treatment' table created or already exists.");
-            }
-        } catch (Exception e) {
-            System.err.println("❌ Error creating 'treatment' table: " + e.getMessage());
             e.printStackTrace();
         }
     }
@@ -577,7 +554,7 @@ public class DBConnection {
 
     public static void AddNewPatient(String pname ,String dob, String dnaSequence,String diseaseMarkers ,int doctorID,FileInputStream fis) {
 
-        String sql="insert into patientgeneticprofile (patientName ,dob ,dnaSequence, diseaseMarkers ,doctorID,Photo) values (?,?,?,?,?,?)";
+        String sql="insert into patientgeneticprofile (patientName ,dob ,dnaSequence, diseaseMarkers ,doctorID,DoctorName,Photo) values (?,?,?,?,?,?,?)";
 
         try(Connection conn=getConnection();
             PreparedStatement pst=conn.prepareStatement(sql))
@@ -587,19 +564,21 @@ public class DBConnection {
             pst.setString(3, dnaSequence);
             pst.setString(4,diseaseMarkers);
             pst.setInt(5, doctorID);
+            pst.setString(6, User.username);
+
 
             if (fis != null) {
-                pst.setBinaryStream(6, fis);
+                pst.setBinaryStream(7, fis);
             } else {
-                pst.setNull(6, java.sql.Types.BLOB);
+                pst.setNull(7, java.sql.Types.BLOB);
             }
 
             int r=pst.executeUpdate();
             if (r > 0) {
-                System.out.println("✅ NEW Patient  " + pname + " Added successfully.");
+                System.out.println(User.GREEN+"✅ NEW Patient  " + pname + " Added successfully."+User.RESET);
 
             } else {
-                System.out.println("❌ Failed to add user :'" + pname + "'. No rows affected.");
+                System.out.println(User.RED+"❌ Failed to add user :'" + pname + "'. No rows affected."+User.RESET);
             }
 
         } catch (Exception e) {
@@ -669,7 +648,7 @@ public class DBConnection {
         String selectSQL = "SELECT dnaSequence, diseaseMarkers FROM patientGeneticProfile WHERE profileID = ?";
         String updateSQL = "UPDATE patientGeneticProfile SET diseaseMarkers = ? WHERE profileID = ?";
 
-        System.out.println("📢 Starting DNA analysis for profile ID: " + profileId);
+        System.out.println(User.BLUE+"📢 Starting DNA analysis for profile ID: "+User.RESET+User.RED + profileId+User.RESET);
 
         try (Connection conn = getConnection();
              PreparedStatement selectStmt = conn.prepareStatement(selectSQL)) {
@@ -683,7 +662,7 @@ public class DBConnection {
                 if (rs.next()) {
                     dnaSequence = rs.getString("dnaSequence");
                     existingMarkers = rs.getString("diseaseMarkers");
-                    System.out.println("📄 DNA Sequence: " + dnaSequence);
+                    System.out.println("📄 DNA Sequence: " +User.GREEN+ dnaSequence+User.RESET);
                     System.out.println("🧬 Existing Markers: " + existingMarkers);
                 } else {
                     System.out.println("❌ No patient found with profile ID: " + profileId);
@@ -740,10 +719,10 @@ public class DBConnection {
             if (dnaSequence.contains("GATCC")) detectedMarkers.add("ALDH2 – Alcohol Sensitivity");
             if (dnaSequence.contains("CCGCGG")) detectedMarkers.add("TPMT – Drug Sensitivity");
 
-            System.out.println("🔍 Detected Markers in DNA: " + detectedMarkers);
+            System.out.println("🔍 Detected Markers in DNA: " +User.RED +detectedMarkers+User.RESET);
 
             if (detectedMarkers.isEmpty()) {
-                System.out.println("ℹ No new disease markers found.");
+                System.out.println(User.GREEN+" No new disease markers found."+User.RESET);
                 return true;
             }
 
@@ -788,7 +767,7 @@ public class DBConnection {
 
                 int updated = updateStmt.executeUpdate();
                 if (updated > 0) {
-                    System.out.println("✅ Disease markers updated to: " + finalMarkers);
+                    System.out.println(User.GREEN + "✅ Disease markers updated to: " + finalMarkers+User.RESET);
                     return true;
                 } else {
                     System.out.println("⚠ No update occurred.");
@@ -815,8 +794,8 @@ public class DBConnection {
 
             int rowsAffected = pstmt.executeUpdate();
 
-            if (rowsAffected > 0) {System.out.println("✅ Clinical note added successfully for profileID: " + profileID);}
-            else {System.out.println("❌ Failed to add clinical note for profileID: " + profileID + ". No rows affected.");}
+            if (rowsAffected > 0) {System.out.println(User.GREEN+"✅ Clinical note added successfully for profileID: "+User.RESET + User.BLUE+ profileID+User.RESET);}
+            else {System.out.println(User.RED+"❌ Failed to add clinical note for profileID: "+User.BLUE + profileID+User.RESET + ". No rows affected.");}
 
         } catch (SQLException e) {
             System.err.println("❌ Database error adding clinical note: " + e.getMessage());
@@ -906,7 +885,7 @@ public class DBConnection {
 
         String sql;
         Object searchValue = null;
-        String searchCriterion = "";
+        String searchCriteria = "";
 
         switch (searchChoice) {
             case 1:
@@ -919,15 +898,24 @@ public class DBConnection {
                 }
                 searchValue = sc.nextInt();
                 sc.nextLine(); // Consume newline
-                sql = "SELECT profileID, patientName, dob, dnaSequence, diseaseMarkers, doctorID FROM patientGeneticProfile WHERE profileID = ?";
-                searchCriterion = "Profile ID";
-                //DBConnection.logAction(User.id ,"Doctor searched profile with id : "+ searchValue);
+                sql = "SELECT p.profileID, p.patientName, p.dob, p.dnaSequence, \n" +
+                        "               p.diseaseMarkers, p.doctorID, u.username AS doctorName\n" +
+                        "        FROM patientGeneticProfile p\n" +
+                        "        LEFT JOIN users u ON p.doctorID = u.id\n" +
+                        "          Where profileid=? ORDER BY p.profileID";
+                searchCriteria = "Profile ID";
+
                 break;
             case 2:
                 System.out.print("Enter Patient Name (or part of it): ");
                 searchValue = "%" + sc.nextLine().trim() + "%";
-                sql = "SELECT profileID, patientName, dob, dnaSequence, diseaseMarkers, doctorID FROM patientGeneticProfile WHERE patientName LIKE ?";
-                searchCriterion = "Patient Name";
+
+                sql = "SELECT p.profileID, p.patientName, p.dob, p.dnaSequence, \n" +
+                        "               p.diseaseMarkers, p.doctorID, u.username AS doctorName\n" +
+                        "        FROM patientGeneticProfile p\n" +
+                        "         JOIN users u ON p.doctorID = u.id\n" +
+                        "       WHERE patientName LIKE ? ORDER BY p.profileID";
+                searchCriteria = "Patient Name";
 
                 break;
             case 3:
@@ -938,11 +926,14 @@ public class DBConnection {
                 }
                 searchValue = sc.nextLine().trim();
 
-                sql = "SELECT profileID, patientName, dob, dnaSequence, diseaseMarkers, doctorID " +
-                        "FROM patientGeneticProfile WHERE diseaseMarkers LIKE ?";
+                sql = "SELECT p.profileID, p.patientName, p.dob, p.dnaSequence, \n" +
+                        "               p.diseaseMarkers, p.doctorID, u.username AS doctorName\n" +
+                        "        FROM patientGeneticProfile p\n" +
+                        "         JOIN users u ON p.doctorID = u.id\n" +
+                        "      WHERE diseaseMarkers LIKE ?  ORDER BY p.profileID  ";
 
                 searchValue = "%" + searchValue + "%";
-                searchCriterion = "Disease";
+                searchCriteria = "Disease";
                 break;
             default:
                 System.out.println("❌ Invalid choice. Please select 1, 2, or 3.");
@@ -960,11 +951,12 @@ public class DBConnection {
 
             ResultSet rs = pstmt.executeQuery();
 
-            System.out.println("\n══════════════════════════════════════════════════════════════════════════════════════════════════════");
-            System.out.println("             🔎 Search Results for " + searchCriterion + ": '" + searchValue + "'");
-            System.out.println("══════════════════════════════════════════════════════════════════════════════════════════════════════");
-            System.out.printf("%-10s %-25s %-12s %-10s %-20s %-10s\n", "Profile ID", "Patient Name", "DOB", "Doctor ID", "DNA ", "Disease Markers ");
-            System.out.println("-------------------------------------------------------------------------------------------------------");
+            System.out.println("\n═════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════");
+            System.out.println("             🔎 Search Results for " + searchCriteria + ": '" + searchValue + "'");
+            System.out.println("═════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════");
+            System.out.printf("%-8s %-20s %-12s %-25s %-40s %-10s %-15s\n",
+                    "ProfileID", "Patient Name", "DOB", "DNA Sequence", "Disease Markers", "DocID", "DoctorName");
+            System.out.println("-----------------------------------------------------------------------------------------------------------------------------------------");
 
             if (!rs.isBeforeFirst()) {
                 System.out.println("No profiles found matching your criteria.");
@@ -972,23 +964,26 @@ public class DBConnection {
             else
             {
                 while (rs.next()) {
-                    int profileID = rs.getInt("profileID");
-                    String patientName = rs.getString("patientName");
-                    Date dob = rs.getDate("dob");
-                    String dnaSequence = rs.getString("dnaSequence");
-                    String diseaseMarkers = rs.getString("diseaseMarkers");
-                    int doctorID = rs.getInt("doctorID");
+                int profileID = rs.getInt("profileID");
+                String patientName = rs.getString("patientName");
+                String dob = rs.getString("dob");
+                String dnaSequence = rs.getString("dnaSequence");
+                String diseaseMarkers = rs.getString("diseaseMarkers");
+                int doctorID = rs.getInt("doctorID");
+                String doctorName = rs.getString("doctorName");
 
-
-                    String displayDna = dnaSequence != null && dnaSequence.length() > 20 ? dnaSequence.substring(0, 17) + "..." : dnaSequence;
-                    String displayMarkers = diseaseMarkers != null && diseaseMarkers.length() > 20 ? diseaseMarkers.substring(0, 17) + "..." : diseaseMarkers;
-
-                    System.out.printf("%-10d %-25s %-12s %-10d %-20s %-20s\n",
-                            profileID, patientName, dob != null ? dob.toString() : "N/A", doctorID,
-                            displayDna, displayMarkers);
-                }
+                System.out.printf("%-8d %-20s %-12s %-25s %-40s %-10d %-15s\n",
+                        profileID,
+                        (patientName != null ? patientName : "Unknown"),
+                        (dob != null ? dob : "N/A"),
+                        (dnaSequence != null ? dnaSequence.substring(6, Math.min(dnaSequence.length(), 47)) + "..." : "N/A"),
+                        (diseaseMarkers != null ? diseaseMarkers : "N/A"),
+                        doctorID,
+                        (doctorName != null ? doctorName : "Unknown"));
             }
-            System.out.println("======================================================================================================\n");
+
+            }
+            System.out.println("═════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════");
 
         } catch (SQLException e) {
             System.err.println("❌ Database error searching profiles: " + e.getMessage());
@@ -1014,7 +1009,7 @@ public class DBConnection {
             checkStmt.setInt(1, profileID);
             try (ResultSet rs = checkStmt.executeQuery()) {
                 if (!rs.next()) {
-                    System.out.println("⚠ No patient profile found with ID: " + profileID);
+                    System.out.println(User.YELLOW+"⚠ No patient profile found with ID: " + profileID+User.RESET);
                     return;
                 }
 
@@ -1044,7 +1039,7 @@ public class DBConnection {
                     if (rows > 0) {
                         deletedProfiles.push(deletedProfile); // ✅ Push into stack
                         System.out.println("🗑 Patient profile (" + patientName +
-                                ") with ID " + profileID + " deleted successfully.");
+                                ") with ID " + User.BLUE+profileID+User.RESET + " deleted successfully.");
                     } else {
                         System.out.println("❌ Failed to delete profile with ID: " + profileID);
                     }
@@ -1060,7 +1055,7 @@ public class DBConnection {
     // Undo Delete (Restore from  Stack)
     public static void undoDeleteProfile() {
         if (deletedProfiles.isEmpty()) {
-            System.out.println("⚠ No deleted profiles to restore.");
+            System.out.println(User.YELLOW+"⚠ No deleted profiles to restore."+User.RESET);
             return;
         }
 
@@ -1088,12 +1083,12 @@ public class DBConnection {
 
                 try{
                     Thread.sleep(2000);
-                    System.out.println("✅ Restored deleted profils Successfully..");
+                    System.out.println(User.GREEN+"✅ Restored deleted profils Successfully.."+User.RESET);
                 }catch(Exception e){
                     System.out.println(" error " + e.getMessage());
                 }
             } else {
-                System.out.println("❌ Failed to restore deleted profile.");
+                System.out.println(User.RED+"❌ Failed to restore deleted profile."+User.RESET);
             }
 
         } catch (SQLException e) {
@@ -1124,12 +1119,12 @@ public class DBConnection {
                         rs.getInt("profileID"),
                         rs.getString("patientName"),
                         rs.getString("dob"),
-                        rs.getString("dnaSequence").replace(",", ";"), // avoid breaking CSV
+                        rs.getString("dnaSequence").replace(",", ";"),
                         rs.getString("diseaseMarkers").replace(",", ";"),
                         rs.getInt("doctorID"));
             }
 
-            System.out.println("✅ Export completed! File saved at: " + filePath);
+            System.out.println(User.GREEN+"✅ Export completed! File saved at: "+User.RESET +User.BLUE + filePath+User.RESET);
 
         } catch (Exception e) {
             System.err.println("❌ Error exporting data: " + e.getMessage());
@@ -1142,7 +1137,7 @@ public class DBConnection {
     private static final Scanner sc = new Scanner(System.in);
     private static final Random random = new Random();
 
-    private static final Map<Character, String> baseColors = new HashMap<>();
+    public  static final Map<Character, String> baseColors = new HashMap<>();
     static {
         baseColors.put('A', "\u001B[31mA\u001B[0m"); // Red
         baseColors.put('T', "\u001B[34mT\u001B[0m"); // Blue
@@ -1163,35 +1158,52 @@ public class DBConnection {
     }
 
     public static void dnaHelixViewer(String sequence) {
-        System.out.println("\n  ---   🌀 DNA in  Helix Style    ---");
-        System.out.println("\n");
-        String[] helix = {"    %s --- %s", "   %s     %s", " %s         %s"};
+        // ANSI color codes
+        final String RESET = "\u001B[0m";
+        final String RED = "\u001B[31m";
+        final String YELLOW = "\u001B[33m";
+        final String BLUE = "\u001B[34m";
+        final String GREEN = "\u001B[32m";
+
+        System.out.println("\n  ---   🌀 DNA in Helix Style    ---\n");
+
+        String[] helix = {
+                "    %s --- %s",
+                "   %s     %s",
+                " %s         %s"
+        };
+
         int i = 0;
 
         for (char base : sequence.toUpperCase().toCharArray()) {
             String pair;
             switch (base) {
-                case 'A':
-                    pair = "T";
-                    break;
-                case 'T':
-                    pair = "A";
-                    break;
-                case 'G':
-                    pair = "C";
-                    break;
-                case 'C':
-                    pair = "G";
-                    break;
-                default:
-                    pair = "?";
+                case 'A': pair = "T"; break;
+                case 'T': pair = "A"; break;
+                case 'G': pair = "C"; break;
+                case 'C': pair = "G"; break;
+                default: pair = "?";
             }
 
-            System.out.printf(helix[i % 3] + "\n", base, pair);
+            // Colorize base and its pair
+            String colorBase = colorize(base, RED, YELLOW, BLUE, GREEN, RESET);
+            String colorPair = colorize(pair.charAt(0), RED, YELLOW, BLUE, GREEN, RESET);
 
+            System.out.printf(helix[i % 3] + "\n", colorBase, colorPair);
             i++;
         }
-        System.out.println("\n");
+
+        System.out.println();
+    }
+
+    private static String colorize(char base, String red, String yellow, String blue, String green, String reset) {
+        switch (base) {
+            case 'A': return red + "A" + reset;
+            case 'T': return yellow + "T" + reset;
+            case 'G': return blue + "G" + reset;
+            case 'C': return green + "C" + reset;
+            default: return base + "";
+        }
     }
 
 
@@ -1248,21 +1260,32 @@ public class DBConnection {
 
     // 5. DNA Fun Facts (uses Queue)
     public static void dnaFunFacts() {
+
         Queue<String> factsQueue = new LinkedList<>();
-        factsQueue.add("DNA is made of only 4 bases: A, T, G, and C.");
-        factsQueue.add("You share about 60% of your DNA with bananas!");
-        factsQueue.add("The human genome has about 3 billion base pairs.");
-        factsQueue.add("If stretched out, your DNA would be about 2 meters long.");
-        factsQueue.add("Every cell in your body contains the same DNA.");
-        factsQueue.add("DNA is universal – found in all living things.");
-        factsQueue.add("If stretched, your DNA could reach the Sun and back 600 times!");
-        factsQueue.add("Humans share about 60% of their DNA with bananas.");
-        factsQueue.add("1 gram of DNA can store ~215 petabytes of data.");
-        factsQueue.add("Only 1.5% of human DNA codes for proteins – the rest is regulatory or 'junk'.");
-        factsQueue.add("DNA can survive for thousands of years in the right conditions.");
-        factsQueue.add("DNA replicates at a speed of ~50 nucleotides per second.");
-        factsQueue.add("When extracted, DNA looks like a white, stringy substance.");
-        factsQueue.add("The double helix structure was discovered in 1953.");
+
+        final String RESET = "\u001B[0m";
+        final String RED = "\u001B[31m";
+        final String YELLOW = "\u001B[33m";
+        final String BLUE = "\u001B[34m";
+        final String GREEN = "\u001B[32m";
+        final String CYAN = "\u001B[36m";
+        final String PURPLE = "\u001B[35m";
+
+        factsQueue.add(RED + "DNA is made of only 4 bases: A, T, G, and C." + RESET);
+        factsQueue.add(YELLOW + "You share about 60% of your DNA with bananas!" + RESET);
+        factsQueue.add(GREEN + "The human genome has about 3 billion base pairs." + RESET);
+        factsQueue.add(BLUE + "If stretched out, your DNA would be about 2 meters long." + RESET);
+        factsQueue.add(CYAN + "Every cell in your body contains the same DNA." + RESET);
+        factsQueue.add(PURPLE + "DNA is universal – found in all living things." + RESET);
+        factsQueue.add(RED + "If stretched, your DNA could reach the Sun and back 600 times!" + RESET);
+        factsQueue.add(YELLOW + "Humans share about 60% of their DNA with bananas." + RESET);
+        factsQueue.add(BLUE + "1 gram of DNA can store ~215 petabytes of data." + RESET);
+        factsQueue.add(GREEN + "Only 1.5% of human DNA codes for proteins – the rest is regulatory or 'junk'." + RESET);
+        factsQueue.add(PURPLE + "DNA can survive for thousands of years in the right conditions." + RESET);
+        factsQueue.add(CYAN + "DNA replicates at a speed of ~50 nucleotides per second." + RESET);
+        factsQueue.add(YELLOW + "When extracted, DNA looks like a white, stringy substance." + RESET);
+        factsQueue.add(RED + "The double helix structure was discovered in 1953." + RESET);
+
 
         // Rotate facts randomly
         int skip = random.nextInt(factsQueue.size());
