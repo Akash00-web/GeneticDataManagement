@@ -30,24 +30,24 @@ public class DBConnection {
         return DriverManager.getConnection(URL, USER, PASSWORD);
     }
 
-       //  method to check if username exists
-        public static boolean isUsernameTaken( String username) throws SQLException {
-            String query = "SELECT COUNT(*) FROM users WHERE username = ?";
-           try( Connection conn = getConnection();
-                   PreparedStatement pst = conn.prepareStatement(query))
-           {    pst.setString(1, username);
-               ResultSet rs = pst.executeQuery();
+    //  method to check if username exists
+    public static boolean isUsernameTaken( String username) throws SQLException {
+        String query = "SELECT COUNT(*) FROM users WHERE username = ?";
+        try( Connection conn = getConnection();
+             PreparedStatement pst = conn.prepareStatement(query))
+        {    pst.setString(1, username);
+            ResultSet rs = pst.executeQuery();
 
             if (rs.next()) {
                 return rs.getInt(1) > 0; // true if count > 0
             }
             return false;
-           } catch (Exception e) {
-               e.printStackTrace();
-               throw new RuntimeException(e);
-           }
-
+        } catch (Exception e) {
+            e.printStackTrace();
+            throw new RuntimeException(e);
         }
+
+    }
 
     // satck to store deleted profiles
     static Stack<Profile> deletedProfiles = new Stack<>();
@@ -187,15 +187,15 @@ public class DBConnection {
 
     public static void insertUser(String username, String password, String role) {
 
-        String sql = "INSERT INTO users (username, password, role) VALUES (?, ?, ?)";
+        String sql = "{CALL insertUser(?, ?, ?)}";
         try (Connection conn = getConnection();
-             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+             CallableStatement cstmt = conn.prepareCall(sql)) {
 
-            pstmt.setString(1, username);
-            pstmt.setString(2, password);
-            pstmt.setString(3, role);
+            cstmt.setString(1, username);
+            cstmt.setString(2, password);
+            cstmt.setString(3, role);
 
-            int rowsAffected = pstmt.executeUpdate();
+            int rowsAffected = cstmt.executeUpdate();
 
             if (rowsAffected > 0) {
                 System.out.println("✅ User '" + username + "' (" + role + ") added successfully.");
@@ -554,26 +554,26 @@ public class DBConnection {
 
     public static void AddNewPatient(String pname ,String dob, String dnaSequence,String diseaseMarkers ,int doctorID,FileInputStream fis) {
 
-        String sql="insert into patientgeneticprofile (patientName ,dob ,dnaSequence, diseaseMarkers ,doctorID,DoctorName,Photo) values (?,?,?,?,?,?,?)";
+        String sql="{CALL insertPatient(?, ?, ?, ?, ?, ?, ?)}";
 
         try(Connection conn=getConnection();
-            PreparedStatement pst=conn.prepareStatement(sql))
+            CallableStatement cst=conn.prepareCall(sql))
         {
-            pst.setString(1, pname);
-            pst.setString(2, dob);
-            pst.setString(3, dnaSequence);
-            pst.setString(4,diseaseMarkers);
-            pst.setInt(5, doctorID);
-            pst.setString(6, User.username);
+            cst.setString(1, pname);
+            cst.setString(2, dob);
+            cst.setString(3, dnaSequence);
+            cst.setString(4,diseaseMarkers);
+            cst.setInt(5, doctorID);
+            cst.setString(6, User.username);
 
 
             if (fis != null) {
-                pst.setBinaryStream(7, fis);
+                cst.setBinaryStream(7, fis);
             } else {
-                pst.setNull(7, java.sql.Types.BLOB);
+                cst.setNull(7, java.sql.Types.BLOB);
             }
 
-            int r=pst.executeUpdate();
+            int r=cst.executeUpdate();
             if (r > 0) {
                 System.out.println(User.GREEN+"✅ NEW Patient  " + pname + " Added successfully."+User.RESET);
 
@@ -783,16 +783,16 @@ public class DBConnection {
     }
 
     public static void addClinicalNote(int profileID, String noteText, int doctorID) {
-        String insertSQL = "INSERT INTO clinicalNotes (profileID, noteText, doctorID) VALUES (?, ?, ?)";
+        String insertSQL = "{CALL insertClinicalNotes(?, ?, ?)}";
 
         try (Connection conn = getConnection();
-             PreparedStatement pstmt = conn.prepareStatement(insertSQL))
+             CallableStatement cstmt = conn.prepareCall(insertSQL))
         {
-            pstmt.setInt(1, profileID);
-            pstmt.setString(2, noteText);
-            pstmt.setInt(3, doctorID);
+            cstmt.setInt(1, profileID);
+            cstmt.setString(2, noteText);
+            cstmt.setInt(3, doctorID);
 
-            int rowsAffected = pstmt.executeUpdate();
+            int rowsAffected = cstmt.executeUpdate();
 
             if (rowsAffected > 0) {System.out.println(User.GREEN+"✅ Clinical note added successfully for profileID: "+User.RESET + User.BLUE+ profileID+User.RESET);}
             else {System.out.println(User.RED+"❌ Failed to add clinical note for profileID: "+User.BLUE + profileID+User.RESET + ". No rows affected.");}
@@ -964,23 +964,23 @@ public class DBConnection {
             else
             {
                 while (rs.next()) {
-                int profileID = rs.getInt("profileID");
-                String patientName = rs.getString("patientName");
-                String dob = rs.getString("dob");
-                String dnaSequence = rs.getString("dnaSequence");
-                String diseaseMarkers = rs.getString("diseaseMarkers");
-                int doctorID = rs.getInt("doctorID");
-                String doctorName = rs.getString("doctorName");
+                    int profileID = rs.getInt("profileID");
+                    String patientName = rs.getString("patientName");
+                    String dob = rs.getString("dob");
+                    String dnaSequence = rs.getString("dnaSequence");
+                    String diseaseMarkers = rs.getString("diseaseMarkers");
+                    int doctorID = rs.getInt("doctorID");
+                    String doctorName = rs.getString("doctorName");
 
-                System.out.printf("%-8d %-20s %-12s %-25s %-40s %-10d %-15s\n",
-                        profileID,
-                        (patientName != null ? patientName : "Unknown"),
-                        (dob != null ? dob : "N/A"),
-                        (dnaSequence != null ? dnaSequence.substring(6, Math.min(dnaSequence.length(), 47)) + "..." : "N/A"),
-                        (diseaseMarkers != null ? diseaseMarkers : "N/A"),
-                        doctorID,
-                        (doctorName != null ? doctorName : "Unknown"));
-            }
+                    System.out.printf("%-8d %-20s %-12s %-25s %-40s %-10d %-15s\n",
+                            profileID,
+                            (patientName != null ? patientName : "Unknown"),
+                            (dob != null ? dob : "N/A"),
+                            (dnaSequence != null ? dnaSequence.substring(6, Math.min(dnaSequence.length(), 47)) + "..." : "N/A"),
+                            (diseaseMarkers != null ? diseaseMarkers : "N/A"),
+                            doctorID,
+                            (doctorName != null ? doctorName : "Unknown"));
+                }
 
             }
             System.out.println("═════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════");
